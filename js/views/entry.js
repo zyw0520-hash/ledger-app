@@ -139,7 +139,7 @@ export async function openEntrySheet(sheetEl, overlayEl, { onClose, saved, txId 
       amountCny: convertToCny(amount, rate), categoryId: state.categoryId,
       date: state.date, ledgerId: state.ledgerId, note: state.note,
     };
-    if (txId) await updateTransaction(Number(txId), row);
+    if (txId) await updateTransaction(txId, row);
     else await addTransaction({ ...row, createdAt: Date.now() });
     close();
     saved && saved(txId ? '已更新' : '已记一笔');

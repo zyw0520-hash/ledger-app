@@ -24,7 +24,7 @@ export async function render(el, ctx) {
 
   const filters = {
     month: state.month,
-    ledgerId: state.ledgerId ? Number(state.ledgerId) : undefined,
+    ledgerId: state.ledgerId || undefined,
     type: state.type || undefined,
     keyword: state.keyword || undefined,
   };
