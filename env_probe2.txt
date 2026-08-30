@@ -1,0 +1,2 @@
+py: MISSING
+icons: icon-192.png=1874 | icon-512.png=6457

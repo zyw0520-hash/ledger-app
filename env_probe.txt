@@ -1,0 +1,4 @@
+python: 
+node: MISSING
+lib sizes: chart.umd.js=206670, dexie.min.js=94254
+dirs: css,docs,icons,js,lib

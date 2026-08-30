@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1677ff">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>轻记账</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="notice-bar" hidden></div>
+  <button id="sync-chip" class="sync-chip" hidden aria-label="同步状态"></button>
+
+  <main id="main">
+    <section id="page-detail" class="page active"></section>
+    <section id="page-stats" class="page"></section>
+    <section id="page-settings" class="page"></section>
+  </main>
+
+  <nav id="tabbar">
+    <button class="tab" data-tab="detail"><span class="tab-icon">📒</span><span>明细</span></button>
+    <button class="tab" data-tab="stats"><span class="tab-icon">📊</span><span>统计</span></button>
+    <div class="fab-wrap"><button id="fab" aria-label="记一笔">＋</button></div>
+    <button class="tab" data-tab="settings"><span class="tab-icon">⚙️</span><span>设置</span></button>
+  </nav>
+
+  <div id="sheet-overlay" hidden>
+    <div id="sheet"></div>
+  </div>
+
+  <div id="toast" hidden></div>
+
+  <script src="lib/dexie.min.js"></script>
+  <script src="lib/chart.umd.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
