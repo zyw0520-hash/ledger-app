@@ -8,6 +8,7 @@ import { parseUid, remoteWins, tombstoneWins } from '../sync.js';
 import { needsDailySnapshot, pruneSnapshots, SNAP_KEEP } from '../backup.js';
 import { pickKeep } from '../db.js';
 import { evalExpr, evalAmountInput } from '../calc.js';
+import { filterChartExpense } from '../views/stats.js';
 
 const results = [];
 function t(name, fn) {
@@ -104,6 +105,17 @@ t('evalAmountInput 输入分类', () => {
   eq(evalAmountInput('-5').kind, 'incomplete'); // 输入中，不算错
   eq(evalAmountInput('12++').kind, 'error');
   eq(evalAmountInput('').kind, 'empty');
+});
+t('filterChartExpense 图表口径过滤', () => {
+  const txs = [
+    { id: 'a', type: 'expense', amountCny: 100 },
+    { id: 'b', type: 'expense', amountCny: 9000 },
+    { id: 'c', type: 'income', amountCny: 500 },
+  ];
+  eq(filterChartExpense(txs, []).length, 2);
+  eq(filterChartExpense(txs, ['b'])[0].id, 'a'); // 大额隐藏后只剩 a
+  eq(filterChartExpense(txs, ['b', 'c']).length, 1); // 收入本来就不进图表
+  eq(filterChartExpense(txs, ['x']).length, 2); // 死 id 无影响
 });
 
 const fails = results.filter(([s]) => s === 'fail');
