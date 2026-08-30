@@ -6,6 +6,7 @@ import { round2, rateFromCache, convertToCny, formatCny, fmtRate } from '../curr
 import { advanceDate } from '../recurring.js';
 import { parseUid, remoteWins, tombstoneWins } from '../sync.js';
 import { needsDailySnapshot, pruneSnapshots, SNAP_KEEP } from '../backup.js';
+import { pickKeep } from '../db.js';
 
 const results = [];
 function t(name, fn) {
@@ -69,6 +70,15 @@ t('pruneSnapshots 保留最新 N 份', () => {
   const all = pruneSnapshots(list, SNAP_KEEP);
   eq(all.keep.length, 5);
   eq(all.remove.length, 0);
+});
+t('pickKeep 重复项保留最早创建的一条', () => {
+  const rows = [
+    { id: 'b', createdAt: 200 },
+    { id: 'a', createdAt: 100 },
+    { id: 'c' },
+  ];
+  eq(pickKeep(rows).id, 'a');
+  eq(pickKeep([{ id: 'x' }, { id: 'y' }]).id, 'x'); // 无 createdAt 时按 id 稳定排序
 });
 
 const fails = results.filter(([s]) => s === 'fail');
