@@ -77,7 +77,7 @@ export async function render(el, ctx) {
               <div class="icon">${cat ? esc(cat.icon) : '❓'}</div>
               <div class="mid">
                 <div class="t1">${esc(t.note || (cat ? cat.name : '未分类'))}</div>
-                <div class="t2">${cat ? esc(cat.name) : '未分类'} · ${esc(ledgerName[t.ledgerId] || '')}</div>
+                <div class="t2">${cat ? esc(cat.name) : '未分类'} · ${esc(ledgerName[t.ledgerId] || '')}${t.amountExpr ? ` · ${esc(t.amountExpr)}` : ''}</div>
               </div>
               <div class="right">
                 <div class="amount ${t.type}">${t.type === 'expense' ? '-' : '+'}${esc(formatCny(t.amountCny))}</div>
