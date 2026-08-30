@@ -1,7 +1,7 @@
 // 入口：初始化、Tab 导航、周期补齐、汇率刷新、弹层与 Toast
 
 import './tests/selftest.js';
-import { db, initDb, addTransaction, updateRule } from './db.js';
+import { db, migrateDb, seedIfEmpty, dedupSeeds, addTransaction, updateRule } from './db.js';
 import { ensureRates, resolveRate } from './rates.js';
 import { processDueRules } from './recurring.js';
 import * as detailView from './views/detail.js';
@@ -106,7 +106,7 @@ async function bootstrap() {
     return;
   }
   try {
-    await initDb();
+    await migrateDb();
   } catch (e) {
     console.error(e);
     showNotice('本地数据库不可用（可能处于隐私模式），记账功能无法使用');
@@ -160,7 +160,17 @@ async function bootstrap() {
   maybeDailySnapshot().catch(e => console.warn('每日快照失败', e));
 
   // 云同步（已配置 Supabase 时自动执行，不阻塞界面）
-  bootSync();
+  // 同步结束后：空库才补种子（避免新设备本地种子与云端重复），并合并历史遗留的重复项
+  bootSync().catch(() => {}).finally(() => {
+    Promise.all([seedIfEmpty(), dedupSeeds()])
+      .then(([_, d]) => {
+        if (d.mergedLedgers || d.mergedCats) {
+          toast(`已合并重复数据：账本 ${d.mergedLedgers} 个、分类 ${d.mergedCats} 个`);
+          refresh();
+        }
+      })
+      .catch(e => console.warn('种子/合并失败', e));
+  });
 
   // 顶栏同步状态指示器：状态变化与写操作后刷新，点击进设置页
   window.addEventListener('ledger-sync', refreshSyncIndicator);

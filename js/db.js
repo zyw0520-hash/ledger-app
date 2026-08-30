@@ -111,8 +111,13 @@ async function migrateIds() {
   await setSetting('uuidMigrated', true);
 }
 
-export async function initDb() {
+export async function migrateDb() {
   await migrateIds();
+}
+
+// 空库时补种子数据。注意：新设备应在「首次同步拉取之后」再调用（seedIfEmpty），
+// 否则本地种子会与云端已有种子形成两套 UUID，同步合并后出现重复分类/账本
+export async function seedIfEmpty() {
   const ledgerCount = await db.ledgers.count();
   if (ledgerCount === 0) {
     await db.ledgers.add({ id: uid(), name: '日常', createdAt: Date.now(), updatedAt: Date.now() });
@@ -124,6 +129,12 @@ export async function initDb() {
     for (const [name, icon] of SEED_CATEGORIES.income) rows.push({ id: uid(), name, icon, type: 'income', updatedAt: Date.now() });
     await db.categories.bulkAdd(rows);
   }
+}
+
+// 兼容入口：迁移 + 补种子（导入备份后的兜底）
+export async function initDb() {
+  await migrateDb();
+  await seedIfEmpty();
 }
 
 // ---------- settings（key-value） ----------
@@ -152,12 +163,12 @@ export async function renameLedger(id, name) {
 }
 
 export async function deleteLedger(id) {
-  const count = await db.transactions.where('ledgerId').equals(id).count();
-  const deadTx = await db.transactions.where('ledgerId').equals(id).toArray();
-  const deadRules = await db.recurringRules.where('ledgerId').equals(id).toArray();
+  const deadTx = await db.transactions.filter(t => t.ledgerId === id).toArray();
+  const deadRules = await db.recurringRules.filter(r => r.ledgerId === id).toArray();
+  const count = deadTx.length;
   await db.transaction('rw', [db.ledgers, db.transactions, db.recurringRules, db.tombstones], async () => {
-    await db.transactions.where('ledgerId').equals(id).delete();
-    await db.recurringRules.where('ledgerId').equals(id).delete();
+    await db.transactions.filter(t => t.ledgerId === id).delete();
+    await db.recurringRules.filter(r => r.ledgerId === id).delete();
     await db.ledgers.delete(id);
     await db.tombstones.bulkPut([
       makeTombstone('ledgers', id),
@@ -178,7 +189,7 @@ export async function addCategory(row) {
 
 export async function deleteCategory(id) {
   await db.transaction('rw', [db.categories, db.transactions, db.tombstones], async () => {
-    await db.transactions.where('categoryId').equals(id).modify(t => {
+    await db.transactions.filter(t => t.categoryId === id).modify(t => {
       t.categoryId = null;
       t.updatedAt = Date.now();
     });
@@ -262,4 +273,66 @@ export async function clearAll() {
     db.recurringRules.clear(), db.settings.clear(), db.tombstones.clear(),
   ]);
   await initDb();
+}
+
+// ---------- 重复种子数据合并 ----------
+
+// 纯函数：一组同 key 重复记录里保留哪条 —— 最早创建的（最可能被存量记录引用）；
+// 无 createdAt 时按 id 兜底，保证所有设备决策一致（selftest 覆盖）
+export function pickKeep(rows) {
+  return [...rows].sort((a, b) =>
+    (a.createdAt ?? Infinity) - (b.createdAt ?? Infinity) ||
+    String(a.id).localeCompare(String(b.id))
+  )[0];
+}
+
+// 自动合并重复：账本按名称、分类按 类型+名称 分组，
+// 引用改指向保留项，重复项删除并留墓碑（同步后其他设备同样收敛）
+export async function dedupSeeds() {
+  let mergedLedgers = 0, mergedCats = 0;
+  const now = Date.now();
+
+  const ledgers = await db.ledgers.toArray();
+  const lgroups = {};
+  for (const l of ledgers) (lgroups[l.name] ??= []).push(l);
+  for (const group of Object.values(lgroups)) {
+    if (group.length < 2) continue;
+    const keep = pickKeep(group);
+    for (const d of group) {
+      if (d.id === keep.id) continue;
+      await db.transaction('rw', [db.ledgers, db.transactions, db.recurringRules, db.tombstones], async () => {
+        await db.transactions.filter(t => t.ledgerId === d.id).modify(t => {
+          t.ledgerId = keep.id; t.updatedAt = now;
+        });
+        await db.recurringRules.filter(r => r.ledgerId === d.id).modify(r => {
+          r.ledgerId = keep.id; r.updatedAt = now;
+        });
+        await db.ledgers.delete(d.id);
+        await db.tombstones.put(makeTombstone('ledgers', d.id));
+      });
+      mergedLedgers++;
+    }
+  }
+
+  const cats = await db.categories.toArray();
+  const cgroups = {};
+  for (const c of cats) (cgroups[`${c.type}|${c.name}`] ??= []).push(c);
+  for (const group of Object.values(cgroups)) {
+    if (group.length < 2) continue;
+    const keep = pickKeep(group);
+    for (const d of group) {
+      if (d.id === keep.id) continue;
+      await db.transaction('rw', [db.categories, db.transactions, db.tombstones], async () => {
+        await db.transactions.filter(t => t.categoryId === d.id).modify(t => {
+          t.categoryId = keep.id; t.updatedAt = now;
+        });
+        await db.categories.delete(d.id);
+        await db.tombstones.put(makeTombstone('categories', d.id));
+      });
+      mergedCats++;
+    }
+  }
+
+  if (mergedLedgers || mergedCats) notifyWrite();
+  return { mergedLedgers, mergedCats };
 }
