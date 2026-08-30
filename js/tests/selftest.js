@@ -7,6 +7,7 @@ import { advanceDate } from '../recurring.js';
 import { parseUid, remoteWins, tombstoneWins } from '../sync.js';
 import { needsDailySnapshot, pruneSnapshots, SNAP_KEEP } from '../backup.js';
 import { pickKeep } from '../db.js';
+import { evalExpr, evalAmountInput } from '../calc.js';
 
 const results = [];
 function t(name, fn) {
@@ -79,6 +80,30 @@ t('pickKeep 重复项保留最早创建的一条', () => {
   ];
   eq(pickKeep(rows).id, 'a');
   eq(pickKeep([{ id: 'x' }, { id: 'y' }]).id, 'x'); // 无 createdAt 时按 id 稳定排序
+});
+t('evalExpr 四则与优先级', () => {
+  eq(evalExpr('2+3*4').value, 14);
+  eq(evalExpr('(2+3)*4').value, 20);
+  eq(evalExpr('45*2-10').value, 80);
+  eq(evalExpr('100÷3').value, 100 / 3);
+  eq(evalExpr('45×2-10').value, 80);
+  eq(evalExpr('12x3').value, 36);
+  eq(evalExpr('=12+3.5').value, 15.5);
+});
+t('evalExpr 非法与除零', () => {
+  if (evalExpr('10/0').ok) throw new Error('除零应报错');
+  if (evalExpr('12++').ok) throw new Error('连续运算符应报错');
+  if (evalExpr('2+(3').ok) throw new Error('缺右括号应报错');
+  if (evalExpr('12a').ok) throw new Error('非法字符应报错');
+});
+t('evalAmountInput 输入分类', () => {
+  eq(evalAmountInput('12.5').kind, 'plain');
+  eq(evalAmountInput('12+3.5').value, 15.5);
+  eq(evalAmountInput('12+3.5').expr, '12+3.5');
+  eq(evalAmountInput('12.').kind, 'plain'); // 输入中，不算错
+  eq(evalAmountInput('-5').kind, 'incomplete'); // 输入中，不算错
+  eq(evalAmountInput('12++').kind, 'error');
+  eq(evalAmountInput('').kind, 'empty');
 });
 
 const fails = results.filter(([s]) => s === 'fail');
