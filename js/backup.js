@@ -31,12 +31,12 @@ export async function exportCsv(month) {
   const rows = txs
     .filter(t => !month || t.date.startsWith(month))
     .sort((a, b) => a.date.localeCompare(b.date));
-  const header = ['date', 'type', 'category', 'ledger', 'amount', 'currency', 'rate', 'amountCny', 'note'];
+  const header = ['date', 'type', 'category', 'ledger', 'amount', 'currency', 'rate', 'amountCny', 'note', 'amountExpr'];
   const lines = [header.join(',')];
   for (const t of rows) {
     lines.push([
       t.date, t.type, catName[t.categoryId] || '未分类', ledgerName[t.ledgerId] || '',
-      t.amount, t.currency, t.rate, t.amountCny, t.note || '',
+      t.amount, t.currency, t.rate, t.amountCny, t.note || '', t.amountExpr || '',
     ].map(csvEscape).join(','));
   }
   // UTF-8 BOM 保证 Excel 直接打开不乱码
