@@ -1,4 +1,4 @@
-const VERSION = 'ledger-v20';
+const VERSION = 'ledger-v21';
 const SHELL = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const SHELL = [
   './lib/dexie.min.js',
   './lib/chart.umd.js',
   './js/app.js',
+  './js/calc.js',
   './js/sync.js',
   './js/dialog.js',
   './js/currency.js',
