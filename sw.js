@@ -1,4 +1,4 @@
-const VERSION = 'ledger-v18';
+const VERSION = 'ledger-v20';
 const SHELL = [
   './',
   './index.html',
