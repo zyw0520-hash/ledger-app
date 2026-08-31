@@ -96,10 +96,15 @@ input, select { font: inherit; color: var(--text); }
 }
 
 /* ---------- 明细页 ---------- */
-.summary { display: flex; gap: 0; }
-.summary > div { flex: 1; }
+.summary { display: flex; gap: 8px; }
+.summary > div { flex: 1; min-width: 0; }
 .summary .label { font-size: 12px; color: var(--text-2); }
-.summary .value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+.summary .value {
+  font-size: 20px; font-weight: 700; margin-top: 2px;
+  font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.2;
+}
+.summary .value.v-sm { font-size: 17px; }
+.summary .value.v-xs { font-size: 15px; }
 .summary .value.income { color: var(--income); }
 .summary .value.expense { color: var(--expense); }
 
