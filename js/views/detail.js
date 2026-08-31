@@ -1,7 +1,7 @@
 // 明细页（首页）：当月汇总 + 流水列表 + 筛选
 
 import { db, getTransactions, deleteTransaction } from '../db.js';
-import { formatCny, formatForeign } from '../currency.js';
+import { formatCny, formatForeign, amountCls } from '../currency.js';
 import { dlgConfirm } from '../dialog.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
@@ -44,9 +44,9 @@ export async function render(el, ctx) {
   el.innerHTML = `
     <h1 class="page-title">明细</h1>
     <div class="card summary">
-      <div><div class="label">本月支出</div><div class="value expense">${esc(formatCny(expense))}</div></div>
-      <div><div class="label">本月收入</div><div class="value income">${esc(formatCny(income))}</div></div>
-      <div><div class="label">本月结余</div><div class="value">${esc(formatCny(income - expense))}</div></div>
+      <div><div class="label">本月支出</div><div class="value expense ${amountCls(formatCny(expense))}">${esc(formatCny(expense))}</div></div>
+      <div><div class="label">本月收入</div><div class="value income ${amountCls(formatCny(income))}">${esc(formatCny(income))}</div></div>
+      <div><div class="label">本月结余</div><div class="value ${amountCls(formatCny(income - expense))}">${esc(formatCny(income - expense))}</div></div>
     </div>
     <div class="filters">
       <input type="month" id="flt-month" value="${esc(state.month)}">

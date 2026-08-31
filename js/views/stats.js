@@ -3,7 +3,7 @@
 //          大额支出可「从图表隐藏」——仅影响两个图表口径，汇总卡与明细页不变
 
 import { db, getTransactions, getSetting, setSetting } from '../db.js';
-import { formatCny } from '../currency.js';
+import { formatCny, amountCls } from '../currency.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -103,9 +103,9 @@ export async function render(el, ctx) {
       </select>
     </div>
     <div class="card summary">
-      <div><div class="label">支出</div><div class="value expense">${esc(formatCny(expense))}</div></div>
-      <div><div class="label">收入</div><div class="value income">${esc(formatCny(income))}</div></div>
-      <div><div class="label">结余</div><div class="value">${esc(formatCny(income - expense))}</div></div>
+      <div><div class="label">支出</div><div class="value expense ${amountCls(formatCny(expense))}">${esc(formatCny(expense))}</div></div>
+      <div><div class="label">收入</div><div class="value income ${amountCls(formatCny(income))}">${esc(formatCny(income))}</div></div>
+      <div><div class="label">结余</div><div class="value ${amountCls(formatCny(income - expense))}">${esc(formatCny(income - expense))}</div></div>
     </div>
     <div class="card">
       <div class="chart-caption">分类占比（支出）</div>
