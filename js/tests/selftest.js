@@ -2,7 +2,7 @@
 // 浏览器控制台运行：import('./js/tests/selftest.js')
 // 该模块被导入时自动执行并 console.log 结果
 
-import { round2, rateFromCache, convertToCny, formatCny, fmtRate } from '../currency.js';
+import { round2, rateFromCache, convertToCny, formatCny, fmtRate, amountCls } from '../currency.js';
 import { advanceDate } from '../recurring.js';
 import { parseUid, remoteWins, tombstoneWins } from '../sync.js';
 import { needsDailySnapshot, pruneSnapshots, SNAP_KEEP } from '../backup.js';
@@ -35,6 +35,15 @@ t('rateFromCache 缓存缺失返回 null', () => eq(rateFromCache('XYZ', { rates
 t('convertToCny 折算取整', () => eq(convertToCny(100, 7.0236), 702.36));
 t('convertToCny 零头', () => eq(convertToCny(33.33, 7.0236), 234.1)); // 234.0966 → 234.1
 t('formatCny 千分位', () => eq(formatCny(1234567.5), '¥1,234,567.50'));
+t('amountCls 长金额分档缩字号', () => {
+  eq(amountCls(formatCny(0)), '');                 // ¥0.00 = 5 字符
+  eq(amountCls(formatCny(999)), '');               // ¥999.00 = 7 字符
+  eq(amountCls(formatCny(1550)), '');              // ¥1,550.00 = 9 字符
+  eq(amountCls(formatCny(-1550)), 'v-sm');         // -¥1,550.00 = 10 字符
+  eq(amountCls(formatCny(12345.67)), 'v-sm');      // ¥12,345.67 = 10 字符
+  eq(amountCls(formatCny(123456.78)), 'v-sm');     // ¥123,456.78 = 11 字符
+  eq(amountCls(formatCny(-123456.78)), 'v-xs');    // -¥123,456.78 = 12 字符
+});
 t('fmtRate 去尾零', () => eq(fmtRate(7.0230), '7.023'));
 t('advanceDate daily', () => eq(advanceDate('2026-01-31', 'daily'), '2026-02-01'));
 t('advanceDate weekly', () => eq(advanceDate('2026-01-01', 'weekly'), '2026-01-08'));
