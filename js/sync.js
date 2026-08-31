@@ -2,7 +2,7 @@
 // 合并策略：记录级"最后修改优先"（updatedAt）；删除通过墓碑表跨设备广播
 // 云端表 sync_docs：uid（'表名:记录id'，主键）、tbl、data（记录 JSON）、updated_at
 
-import { db, getSetting, setSetting } from './db.js';
+import { db, getSetting, setSetting, dedupSeeds } from './db.js';
 
 const TABLES = ['ledgers', 'categories', 'transactions', 'recurringRules'];
 const PAGE = 1000;   // Supabase 单次查询上限
@@ -95,6 +95,19 @@ export async function mergeRemote(docs) {
   });
 }
 
+// 拉取后合并重复种子：云端与本地种子 UUID 不同，运行期同步合并入库后
+// 会出现同名重复（仅启动时去重不够，需每次拉取后收敛）
+async function dedupAfterPull() {
+  try {
+    const d = await dedupSeeds();
+    if ((d.mergedLedgers || d.mergedCats) && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ledger-dedup'));
+    }
+  } catch (e) {
+    console.warn('[同步] 重复数据合并失败：', e.message);
+  }
+}
+
 async function pull(cfg) {
   let offset = 0, total = 0;
   while (true) {
@@ -149,6 +162,7 @@ export async function syncAfterRestore() {
   try {
     const pushed = await push(cfg);
     const pulled = await pull(cfg);
+    await dedupAfterPull();
     await patchSyncState({ lastSyncAt: Date.now(), lastError: null });
     return { pulled, pushed };
   } catch (e) {
@@ -167,6 +181,7 @@ export async function syncNow() {
   syncing = true;
   try {
     const pulled = await pull(cfg);
+    await dedupAfterPull();
     const pushed = await push(cfg);
     await patchSyncState({ lastSyncAt: Date.now(), lastError: null });
     return { pulled, pushed };

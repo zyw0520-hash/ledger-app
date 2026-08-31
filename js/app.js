@@ -174,6 +174,8 @@ async function bootstrap() {
 
   // 顶栏同步状态指示器：状态变化与写操作后刷新，点击进设置页
   window.addEventListener('ledger-sync', refreshSyncIndicator);
+  // 运行期同步拉取后自动合并了重复种子 → 刷新当前页面
+  window.addEventListener('ledger-dedup', () => { toast('已自动合并重复的账本/分类'); refresh(); });
   window.addEventListener('ledger-write', () => {
     clearTimeout(syncChipTimer);
     syncChipTimer = setTimeout(refreshSyncIndicator, 500);
