@@ -68,6 +68,13 @@ export function formatCny(n) {
   });
 }
 
+// 汇总卡金额字号档位：三列均分布局下超长金额缩字号避免挤压（selftest 覆盖）
+// ≤9 字符默认 20px；10-11 字符 v-sm 17px；≥12 字符 v-xs 15px
+export function amountCls(s) {
+  const n = String(s ?? '').length;
+  return n >= 12 ? 'v-xs' : n >= 10 ? 'v-sm' : '';
+}
+
 // $100.00；未知币种回退为代码前缀
 export function formatForeign(amount, ccy) {
   const sym = SYMBOL_MAP[ccy] || ccy + ' ';
